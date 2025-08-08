@@ -1,0 +1,88 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.td.individualdatacleanup</groupId>
+	<artifactId>azure-function-sql-cleanup</artifactId>
+	<version>1.0-SNAPSHOT</version>
+
+	<properties>
+		<java.version>21</java.version> <!-- Updated Java version -->
+		<spring.boot.version>3.1.4</spring.boot.version> <!-- Latest Spring Boot -->
+		<azure-functions-java-library.version>3.0.0</azure-functions-java-library.version>
+	</properties>
+
+	<dependencies>
+		<!-- Azure Functions Java library -->
+		<dependency>
+			<groupId>com.microsoft.azure.functions</groupId>
+			<artifactId>azure-functions-java-library</artifactId>
+			<version>${azure-functions-java-library.version}</version>
+		</dependency>
+
+		<!-- Spring Boot Dependencies -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+			<version>${spring.boot.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+			<version>${spring.boot.version}</version>
+		</dependency>
+
+		<!-- Azure SQL JDBC Driver -->
+		<dependency>
+			<groupId>com.microsoft.sqlserver</groupId>
+			<artifactId>mssql-jdbc</artifactId>
+			<version>12.2.0.jre21</version> <!-- Compatible with Java 21 -->
+		</dependency>
+
+		<!-- Microsoft Authentication Library (MSAL) -->
+		<dependency>
+			<groupId>com.microsoft.azure</groupId>
+			<artifactId>msal4j</artifactId>
+			<version>1.12.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.microsoft.sqlserver</groupId>
+			<artifactId>mssql-jdbc</artifactId>
+			<version>12.8.0.jre11</version> <!-- Latest stable, Java 11+ compatible -->
+		</dependency>
+
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>com.microsoft.azure</groupId>
+				<artifactId>azure-functions-maven-plugin</artifactId>
+				<version>1.15.0</version>
+				<configuration>
+					<resourceGroup>your-resource-group</resourceGroup>
+					<appName>your-function-app-name</appName>
+					<region>eastus</region>
+					<runtime>
+						<os>linux</os>
+						<javaVersion>21</javaVersion><!-- Use Java 21 -->
+						<webContainer>JAVA</webContainer>
+					</runtime>
+					<appSettings>
+						<property>
+							<name>MAIN_CLASS</name>
+							<value>com.dinesh.expiredcleanup.AzureFunctionSqlCleanupApplication</value>
+						</property>
+						<property>
+							<name>SqlDbUrl</name>
+							<value>jdbc:sqlserver://your-sql-server.database.windows.net:1433;database=your-db-name</value>
+						</property>
+						<!-- Add azure.client-id, azure.client-secret, and azure.tenant-id in the Azure Function App settings or local.settings.json -->
+					</appSettings>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
