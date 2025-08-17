@@ -1,187 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
 		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>com.td.individualdatacleanup</groupId>
-	<artifactId>azure-function-sql-cleanup</artifactId>
+	<groupId>com.pregnancy.cleanup</groupId>
+	<artifactId>expired-records-cleanup-function</artifactId>
 	<version>1.0-SNAPSHOT</version>
+	<packaging>jar</packaging>
+
+	<name>Expired Records Cleanup Azure Function</name>
+
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.2.6</version>
+		<relativePath/>
+	</parent>
 
 	<properties>
-		<java.version>21</java.version> <!-- Updated Java version -->
-		<spring.boot.version>3.1.4</spring.boot.version> <!-- Latest Spring Boot -->
-		<azure-functions-java-library.version>3.0.0</azure-functions-java-library.version>
+		<java.version>17</java.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.source>${java.version}</maven.compiler.source>
+		<maven.compiler.target>${java.version}</maven.compiler.target>
+
+		<spring.boot.version>3.1.4</spring.boot.version>
+		<azure.functions.maven.plugin.version>1.22.0</azure.functions.maven.plugin.version>
+		<azure.functions.java.library.version>3.0.0</azure.functions.java.library.version>
+		<spring.cloud.function.dependencies.version>4.0.0</spring.cloud.function.dependencies.version>
+		<mssql.jdbc.version>12.4.2.jre11</mssql.jdbc.version>
+		<maven.resources.plugin.version>3.3.0</maven.resources.plugin.version>
+		<maven.dependency.plugin.version>3.4.0</maven.dependency.plugin.version>
+		<maven.clean.plugin.version>3.2.0</maven.clean.plugin.version>
+		<lombok.version>1.18.24</lombok.version>
+
+		<!-- Azure Function App Properties -->
+		<functionResourceGroup>preg-function-resource-group</functionResourceGroup>
+		<functionAppServicePlanName>preg-function-service-plan</functionAppServicePlanName>
+		<functionAppName>preg-function</functionAppName>
+		<functionAppRegion>westeurope</functionAppRegion>
+		<functionPricingTier>Y1</functionPricingTier>
+
+		<start-class>com.cleanup.FunctionApplication</start-class>
 	</properties>
 
 	<dependencies>
-		<!-- Azure Functions Java library -->
 		<dependency>
-			<groupId>com.microsoft.azure.functions</groupId>
-			<artifactId>azure-functions-java-library</artifactId>
-			<version>${azure-functions-java-library.version}</version>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-function-adapter-azure</artifactId>
 		</dependency>
-
-		<!-- Spring Boot Dependencies -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-function-webflux</artifactId>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
-			<version>${spring.boot.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-			<version>${spring.boot.version}</version>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
 		</dependency>
-
-		<!-- Azure SQL JDBC Driver -->
+		<!-- Lombok -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>${lombok.version}</version>
+			<scope>provided</scope>
+		</dependency>
+		<!-- H2 database for local testing -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<!-- SQL Server JDBC Driver for Azure SQL -->
 		<dependency>
 			<groupId>com.microsoft.sqlserver</groupId>
 			<artifactId>mssql-jdbc</artifactId>
-			<version>12.2.0.jre21</version> <!-- Compatible with Java 21 -->
+			<version>${mssql.jdbc.version}</version>
+			<scope>runtime</scope>
 		</dependency>
-
-		<!-- Microsoft Authentication Library (MSAL) -->
+		<!-- Testing dependencies -->
 		<dependency>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>msal4j</artifactId>
-			<version>1.12.0</version>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.microsoft.sqlserver</groupId>
-			<artifactId>mssql-jdbc</artifactId>
-			<version>12.8.0.jre11</version> <!-- Latest stable, Java 11+ compatible -->
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter-api</artifactId>
+			<scope>test</scope>
 		</dependency>
-
 	</dependencies>
 
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-function-dependencies</artifactId>
+				<version>${spring.cloud.function.dependencies.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>com.microsoft.azure.functions</groupId>
+				<artifactId>azure-functions-java-library</artifactId>
+				<version>${azure.functions.java.library.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<build>
-		<!--plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.5.0</version>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<transformers>
-								<transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-									<mainClass>com.td.individualdatacleanup.function.FunctionApp</mainClass>
-								</transformer>
-							</transformers>
-							<filters>
-								<filter>
-									<artifact>net.minidev:json-smart</artifact>
-									<includes>
-										<include>**</include>
-									</includes>
-								</filter>
-							</filters>
-							<relocations>
-								<relocation>
-									<pattern>net.minidev.json</pattern>
-									<shadedPattern>shaded.net.minidev.json</shadedPattern>
-								</relocation>
-							</relocations>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>com.microsoft.azure</groupId>
+					<artifactId>azure-functions-maven-plugin</artifactId>
+					<version>${azure.functions.maven.plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-resources-plugin</artifactId>
+					<version>${maven.resources.plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>${maven.dependency.plugin.version}</version>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-clean-plugin</artifactId>
+					<version>${maven.clean.plugin.version}</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<plugins>
 			<plugin>
 				<groupId>com.microsoft.azure</groupId>
 				<artifactId>azure-functions-maven-plugin</artifactId>
-				<version>1.15.0</version>
+				<configuration>
+					<resourceGroup>${functionResourceGroup}</resourceGroup>
+					<appName>${functionAppName}</appName>
+					<region>${functionAppRegion}</region>
+					<appServicePlanName>${functionAppServicePlanName}</appServicePlanName>
+					<pricingTier>${functionPricingTier}</pricingTier>
+					<hostJson>${project.basedir}/src/main/resources/host.json</hostJson>
+					<localSettingsJson>${project.basedir}/src/main/resources/local.settings.json</localSettingsJson>
+					<runtime>
+						<os>linux</os>
+						<javaVersion>${java.version}</javaVersion>
+					</runtime>
+					<appSettings>
+						<property>
+							<name>FUNCTIONS_EXTENSION_VERSION</name>
+							<value>~4</value>
+						</property>
+					</appSettings>
+				</configuration>
 				<executions>
 					<execution>
-						<phase>package</phase>
 						<goals>
 							<goal>package</goal>
 						</goals>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>${maven.clean.plugin.version}</version>
 				<configuration>
-					< your Azure config >
+					<filesets>
+						<fileset>
+							<directory>obj</directory>
+						</fileset>
+					</filesets>
 				</configuration>
 			</plugin>
-		</plugins-->
-
-
-
-		<!--
-
-		<plugins>
-    < Enforcer Plugin - Executes FIRST (validate phase)>
-		<plugin>
-			<groupId>org.apache.maven.plugins</groupId>
-			<artifactId>maven-enforcer-plugin</artifactId>
-			<version>3.3.0</version>
-			<executions>
-				<execution>
-					<id>enforce-versions</id>
-					<phase>validate</phase>
-					<goals>
-						<goal>enforce</goal>
-					</goals>
-					<configuration>
-						<rules>
-							<bannedDependencies>
-								<excludes>
-									<exclude>net.minidev:json-smart:2.3-SNAPSHOT</exclude>
-								</excludes>
-								<message>SNAPSHOT version of json-smart is not allowed!</message>
-							</bannedDependencies>
-						</rules>
-					</configuration>
-				</execution>
-			</executions>
-		</plugin>
-
-		<Azure Functions Plugin - Executes AFTER enforcer >
-		<plugin>
-			<groupId>com.microsoft.azure</groupId>
-			<artifactId>azure-functions-maven-plugin</artifactId>
-			<version>1.15.0</version>
-			<configuration>
-				< your config >
-			</configuration>
-		</plugin>
-	</plugins>
-
-
-
-	-->
-
-		<plugins>
 			<plugin>
-				<groupId>com.microsoft.azure</groupId>
-				<artifactId>azure-functions-maven-plugin</artifactId>
-				<version>1.15.0</version>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+				<version>${spring.boot.version}</version>
 				<configuration>
-					<resourceGroup>your-resource-group</resourceGroup>
-					<appName>your-function-app-name</appName>
-					<region>eastus</region>
-					<runtime>
-						<os>linux</os>
-						<javaVersion>21</javaVersion><!-- Use Java 21 -->
-						<webContainer>JAVA</webContainer>
-					</runtime>
-					<appSettings>
-						<property>
-							<name>MAIN_CLASS</name>
-							<value>com.dinesh.expiredcleanup.AzureFunctionSqlCleanupApplication</value>
-						</property>
-						<property>
-							<name>SqlDbUrl</name>
-							<value>jdbc:sqlserver://your-sql-server.database.windows.net:1433;database=your-db-name</value>
-						</property>
-						<!-- Add azure.client-id, azure.client-secret, and azure.tenant-id in the Azure Function App settings or local.settings.json -->
-					</appSettings>
+					<mainClass>${start-class}</mainClass>
 				</configuration>
 			</plugin>
 		</plugins>
